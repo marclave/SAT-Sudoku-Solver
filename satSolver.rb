@@ -1,6 +1,7 @@
 # SAT Solver Implementation for CSC 320
-# Braydon Justice, Cortland Thibodeau, and Sebastian Craig
+# Braydon Justice, Cortland Thibodeau, and Toasty
 # Converts given Sudoku puzzles into Conjunctive Normal Form (CNF)
+# Ruby < python
 
 # THE RULES
 # 1) Every cell contains at least one number

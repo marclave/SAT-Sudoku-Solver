@@ -8,58 +8,155 @@
 # 3) Each number appears at most once in every column
 # 4) Each number appears at most once in every 3x3 subgrid
 
-# Gets all the distinct varbiables for the CNF
-# If there are duplicates in the conversions then the Sudoku puzzle is not valid
-def parsePuzzle puzzle
-   columns = (1..9).to_a
-   rows = (1..9).to_a
-   # Need to check that this is the correct starting index
-   count = -1
-   variables = []
+$board = [9]
 
-   # Replaces wildcard characters with 0s
-   puzzle.gsub!(/[.?*]/, '0')
+# Parses the input string into a 9x9 grid
+def parsePuzzle str
+    count = -1
+	str.gsub!(/[.?*]/, '0')
+	str.gsub!("\n", "")
+	str.gsub!("\r", "")
 
-   rows.each do |row|
-      columns.each do |col|
-	# puts "Calculate variable value of: #{row} #{col}"
-         variables.push(getVariableNumber(row, col, puzzle[count+=1].to_i))
-      end
-   end
-   
-   # FOR DEBUGGING
-   # puts variables.sort
-   # puts "There are #{variables.count} values"
-   # puts "There are #{variables.uniq.count} unique values"
-   # puts variables.detect{ |e| variables.count(e) > 1 }
-
-   # Checks for duplicates.. uniq are only unique values
-   if variables.uniq.length == variables.length
-      puts "Array does not contain duplicates"
-   else
-      puts "Array contains duplicates BAD SUDOKU"
-   end
+    (0 .. 8).each do |row|
+	$board[row] = 
+	(0 .. 8).each do |col|
+            current = str[count+=1]
+            if current == '\r' || current == '\n'
+                next
+            elsif current == '.' || current == '*' || current == '?'
+                $board[row][col] = 0
+            else
+		puts current.to_i
+                $board[row][col] = current.to_i
+            end
+        end
+    end
 end
 
 # Calculates the variable value
 # Base 9 was all weird...
-def getVariableNumber(row, col, value)
+def GetVar(row, col, value)
    # value = (81 * (i - 1)) + (9 * (j - 1)) + ((k - 1) + 1) 
    (row * 100) + (col * 10) + value 
+end
+
+# Ensures there are no duplicates in a row
+# If there are, raise an error
+# Else returns the values in the specific column
+def RowCheck row
+    cnf = []
+    seen = []
+    (0..8).each do |col|
+        if $board[row][col] !=0
+            seen.push($board [row][col])
+        end
+    end
+    
+    if seen.count != seen.uniq.count
+        raise "Duplicate value in row #{row}"
+    else
+        seen
+    end
+end
+
+# Ensure there are no duplicates in a column
+def ColCheck j
+    cnf = []
+    seen = []
+    (0 .. 8).each do |row|
+        val = $board[row][j]
+        if val != 0
+            seen.push(val)
+        end
+    end  
+
+    if seen.count != seen.uniq.count
+        raise "Duplicate value in column #{j}"
+    else        
+        seen
+    end
+end 
+
+# Ensure there are no duplicates in a box
+def GridCheck(rowIndex, colIndex)
+    row = ((rowIndex - 1) / 3).floor
+    col = ((colIndex - 1) / 3).floor
+    seen = []
+    (0 .. 2).each do|innerRow|
+        (0 .. 2).each do |innerCol|
+            $boardVal = $board[3*row + innerRow][3*col + innerCol]
+            if $boardVal != 0
+                seen.push($boardVal)
+            end
+        end
+    end
+    
+    if seen.count != seen.uniq.count
+        raise "Duplicate value in grid #{rowIndex} #{colIndex}"
+    else        
+        seen
+    end
+end
+
+def uniqueValues(arr)
+    arr.count == arr.uniq.count
+end
+
+def GetCellCNF (row, col)
+    cnfVals= []
+    rowVals = CheckRow(row)    
+    colVals = CheckCol(col)   
+    gridVals = CheckGrid(row, col)
+    
+    #[rowVals, colVals, gridVals].each do |x|
+     #   raise "Duplicate Value Somewhere!" unless uniqueValues(x)
+    #end
+     
+    notVals = rowVals|colVals|gridVals
+    vals = []   
+
+    (1..9).each do |checkVal|
+        if !notVals.include? checkVal
+            vals.append(checkVal)
+        end
+    end
+
+    vals.each do |k|
+        cnfVals.append(-GetVar(row, col, k))
+    end
+    cnfVals
 end
 
 # Converts the parsed puzzle (the variable values) into CNF
 # Adheres to the 4 given rules
 def convertToCNF theParsedPuzzle
+    cnfMat = [][]   
+    cnfCounter = -1 
+
+    (0..8).each do |row|
+        (0..8).each do |col|
+            if $board[row][col] == 0
+                cnfMat[cnfCounter+=1][] = GetCellCNF(row, col)
+            end
+        end
+    end
+  
+    
 end
 
 def run
-   if ARGV.count == 0
-      puts 'Please provide a Sudoku puzzle as a string'
-   else
-      parsePuzzle ARGV[0].dup
+    if ARGV.count == 0
+       parsePuzzle "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"
+    else
+       if ARGV[0].length != 81   # Checks the validaty of rule 1
+          puts "Puzzle doesn't contain 81 elements, invalid puzzle"
+        else
+          parsePuzzle ARGV[0].dup
+      end
    end
 end
+
+
 
 # Run with input
 run

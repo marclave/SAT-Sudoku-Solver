@@ -18,7 +18,7 @@ def parsePuzzle str
 	str.gsub!("\r", "")
 
     (0 .. 8).each do |row|
-	$board[row] = 
+	$board[row] = Array.new(9)
 	(0 .. 8).each do |col|
             current = str[count+=1]
             if current == '\r' || current == '\n'
@@ -26,7 +26,6 @@ def parsePuzzle str
             elsif current == '.' || current == '*' || current == '?'
                 $board[row][col] = 0
             else
-		puts current.to_i
                 $board[row][col] = current.to_i
             end
         end
@@ -53,6 +52,7 @@ def RowCheck row
     end
     
     if seen.count != seen.uniq.count
+    	    p seen
         raise "Duplicate value in row #{row}"
     else
         seen
@@ -60,17 +60,18 @@ def RowCheck row
 end
 
 # Ensure there are no duplicates in a column
-def ColCheck j
+def ColCheck col
     cnf = []
     seen = []
     (0 .. 8).each do |row|
-        val = $board[row][j]
+        val = $board[row][col]
         if val != 0
             seen.push(val)
         end
     end  
 
     if seen.count != seen.uniq.count
+    	    p seen
         raise "Duplicate value in column #{j}"
     else        
         seen
@@ -92,6 +93,7 @@ def GridCheck(rowIndex, colIndex)
     end
     
     if seen.count != seen.uniq.count
+    	    p seen
         raise "Duplicate value in grid #{rowIndex} #{colIndex}"
     else        
         seen
@@ -104,9 +106,9 @@ end
 
 def GetCellCNF (row, col)
     cnfVals= []
-    rowVals = CheckRow(row)    
-    colVals = CheckCol(col)   
-    gridVals = CheckGrid(row, col)
+    rowVals = RowCheck(row)    
+    colVals = ColCheck(col)   
+    gridVals = GridCheck(row, col)
     
     #[rowVals, colVals, gridVals].each do |x|
      #   raise "Duplicate Value Somewhere!" unless uniqueValues(x)
@@ -114,39 +116,43 @@ def GetCellCNF (row, col)
      
     notVals = rowVals|colVals|gridVals
     vals = []   
-
+    
     (1..9).each do |checkVal|
         if !notVals.include? checkVal
-            vals.append(checkVal)
+            vals.unshift(checkVal)
         end
     end
 
     vals.each do |k|
-        cnfVals.append(-GetVar(row, col, k))
+        cnfVals.unshift(GetVar(row+1, col+1, k))
     end
+    
     cnfVals
 end
 
 # Converts the parsed puzzle (the variable values) into CNF
 # Adheres to the 4 given rules
 def convertToCNF theParsedPuzzle
-    cnfMat = [][]   
+    cnfMat = []
     cnfCounter = -1 
 
     (0..8).each do |row|
         (0..8).each do |col|
             if $board[row][col] == 0
-                cnfMat[cnfCounter+=1][] = GetCellCNF(row, col)
+                cnfMat[cnfCounter+=1] = GetCellCNF(row, col)
             end
         end
     end
-  
-    
+    #FOR DEBUGGING
+    cnfMat.each do |set|
+  	p set
+    end
+    #FOR DEBUGGING
 end
 
 def run
     if ARGV.count == 0
-       parsePuzzle "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"
+       theParsedPuzzle = parsePuzzle "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"
     else
        if ARGV[0].length != 81   # Checks the validaty of rule 1
           puts "Puzzle doesn't contain 81 elements, invalid puzzle"
@@ -154,6 +160,7 @@ def run
           parsePuzzle ARGV[0].dup
       end
    end
+   convertToCNF theParsedPuzzle
 end
 
 
